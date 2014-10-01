@@ -3,8 +3,15 @@ from distutils.extension import Extension
 from Cython.Build import cythonize
 
 setup(
-    name = "RaZberry ZWay",
-    ext_modules = cythonize([
+    name="PyZberry",
+    version="1.0.0.0",
+    description="Cython wrapper for RaZberry C API",
+    author="Vladimir Smirnov",
+    author_email="vladimir@smirnov.im",
+    url="https://github.com/mindcollapse/razberry-python",
+    license="BSD",
+    platforms=["raspberry-pi"],
+    ext_modules=cythonize([
         Extension(
             "zway", ["zway.pyx"],
             include_dirs=["/opt/z-way-server/libzway-dev"],
