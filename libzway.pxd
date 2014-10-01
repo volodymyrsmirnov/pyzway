@@ -1,7 +1,8 @@
 from libc.stdio cimport FILE
-from posix.types cimport time_t
 
 cdef extern from "ZWayLib.h":
+    ctypedef long time_t
+
     cdef struct _ZWay:
         pass
 
@@ -24,9 +25,9 @@ cdef extern from "ZWayLib.h":
 
     ctypedef _ZGuessedProduct *ZGuessedProduct
 
-    ctypedef unsigned char * ZWDevicesList;
-    ctypedef unsigned char * ZWInstancesList;
-    ctypedef unsigned char * ZWCommandClassesList;
+    ctypedef unsigned char * ZWDevicesList
+    ctypedef unsigned char * ZWInstancesList
+    ctypedef unsigned char * ZWCommandClassesList
 
     ctypedef void (*ZTerminationCallback)(ZWay zway)
     ctypedef void (*ZDeviceCallback)(ZWay wzay, int type, unsigned char node_id, unsigned char instance_id, unsigned char command_id, void *arg)
