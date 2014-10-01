@@ -101,7 +101,7 @@ cdef class ZWay:
 
     def device_guess(self, int node_id):
         cdef libzway.ZGuessedProduct *products = libzway.zway_device_guess(self._zway, <unsigned char> node_id)
-        cdef libzway.ZGuessedProduct product =  <libzway.ZGuessedProduct> cython.operator.dereference(products)
+        cdef libzway.ZGuessedProduct product = <libzway.ZGuessedProduct> cython.operator.dereference(products)
 
         result = []
 
@@ -196,28 +196,28 @@ cdef class ZWay:
             ), "zway controller disable suc node id failed", node_id
         )
 
-    def controller_change(self, bool activate = True):
+    def controller_change(self, activate = True):
         self.on_error(
             libzway.zway_controller_change(
                 self._zway, <unsigned char> (1 if activate else 0)
             ), "zway controller change failed", activate
         )
 
-    def controller_add_node_to_network(self, bool activate = True):
+    def controller_add_node_to_network(self, activate = True):
         self.on_error(
             libzway.zway_controller_add_node_to_network(
                 self._zway, <unsigned char> (1 if activate else 0)
             ), "zway controller add node to network failed", activate
         )
 
-    def controller_remove_node_from_network(self, bool activate = True):
+    def controller_remove_node_from_network(self, activate = True):
         self.on_error(
             libzway.zway_controller_remove_node_from_network(
                 self._zway, <unsigned char> (1 if activate else 0)
             ), "zway controller remove node from network failed", activate
         )
 
-    def controller_set_learn_mode(self, bool activate = True):
+    def controller_set_learn_mode(self, activate = True):
         self.on_error(
             libzway.zway_controller_set_learn_mode(
                 self._zway, <unsigned char> (1 if activate else 0)
@@ -231,27 +231,67 @@ cdef class ZWay:
             ), "zway controller set default failed"
         )
 
+    def controller_config_restore(self, bytes data, full = True):
+        self.on_error(
+            libzway.zway_controller_config_restore(
+                self._zway, <unsigned char *> data, len(data), <unsigned char> (1 if full else 0)
+            ), "zway controller set learn mode failed", (data, full)
+        )
 
+    def zddx_save_to_xml(self):
+        self.on_error(
+            libzway.zddx_save_to_xml(
+                self._zway
+            ), "zway zddx save to xml failed"
+        )
 
+    def device_list(self):
+        result = []
 
+        cdef libzway.ZWDevicesList devices = libzway.zway_devices_list(self._zway)
+        cdef unsigned char* device = <unsigned char*> cython.operator.dereference(devices)
 
+        if device != NULL:
+            while device != <unsigned char *> 0:
+                result.append(<int> device)
+                cython.operator.preincrement(device)
 
+        libzway.zway_devices_list_free(devices)
 
+        return result
 
+    def instances_list(self, int device_id):
+        result = []
 
+        cdef libzway.ZWInstancesList instances = libzway.zway_instances_list(self._zway, <unsigned char> device_id)
+        cdef unsigned char* instance = <unsigned char*> cython.operator.dereference(instances)
 
+        if instance != NULL:
+            while instance != <unsigned char *> 0:
+                result.append(<int> instance)
+                cython.operator.preincrement(instance)
 
+        libzway.zway_command_classes_list_free(instances)
 
+        return result
 
+    def command_classes_list(self, int device_id, int instance_id):
+        result = []
 
+        cdef libzway.ZWCommandClassesList command_classes = libzway.zway_command_classes_list(self._zway, <unsigned char> device_id, <unsigned char> instance_id)
+        cdef unsigned char* command_class = <unsigned char*> cython.operator.dereference(command_classes)
 
+        if command_class != NULL:
+            while command_class != <unsigned char *> 0:
+                result.append(<int> command_class)
+                cython.operator.preincrement(command_class)
 
+        libzway.zway_command_classes_list_free(command_classes)
 
+        return result
 
-
-
-
-
+    def command_is_supported(self, int node_id, int instance_id, int command_id):
+        return libzway.zway_command_is_supported(self._zway, <unsigned char> node_id, <unsigned char> instance_id, <unsigned char> command_id) != 0
 
 
 

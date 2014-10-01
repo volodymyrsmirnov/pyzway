@@ -7,7 +7,7 @@ cdef extern from "ZWayLib.h":
     ctypedef _ZWay* ZWay
 
     ctypedef void (*ZTerminationCallback)(ZWay zway)
-    ctypedef void (*ZDeviceCallback)(ZWay wzay, int type, unsigned char node_id, unsigned char instance_id, unsigned char command_id, void *arg);
+    ctypedef void (*ZDeviceCallback)(ZWay wzay, int type, unsigned char node_id, unsigned char instance_id, unsigned char command_id, void *arg)
 
     cdef struct _ZGuessedProduct:
         int score
@@ -17,6 +17,10 @@ cdef extern from "ZWayLib.h":
         char* file_name
 
     ctypedef _ZGuessedProduct *ZGuessedProduct
+
+    ctypedef unsigned char * ZWDevicesList;
+    ctypedef unsigned char * ZWInstancesList;
+    ctypedef unsigned char * ZWCommandClassesList;
 
     int zway_init(ZWay *pzway, char* port, char* config_folder, char* translations_folder, char* zddx_folder, FILE* log, int level)
 
@@ -75,3 +79,21 @@ cdef extern from "ZWayLib.h":
     int zway_controller_set_learn_mode(ZWay zway, unsigned char startStop)
 
     int zway_controller_set_default(ZWay zway)
+
+    int zway_controller_config_restore(ZWay zway, unsigned char *data, size_t length, unsigned char full)
+
+    int zddx_save_to_xml(ZWay zway)
+
+    ZWDevicesList zway_devices_list(ZWay zway)
+
+    void zway_devices_list_free(ZWDevicesList list)
+
+    ZWInstancesList zway_instances_list(ZWay zway, unsigned char deviceId)
+
+    void zway_command_classes_list_free(ZWCommandClassesList list)
+
+    ZWCommandClassesList zway_command_classes_list(ZWay zway, unsigned char deviceId, unsigned char instanceId)
+
+    void zway_command_classes_list_free(ZWCommandClassesList list)
+
+    unsigned char zway_command_is_supported(ZWay zway, unsigned char node_id, unsigned char instance_id, unsigned char command_id)
