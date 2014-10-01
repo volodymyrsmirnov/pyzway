@@ -2,15 +2,82 @@ cimport libzway
 cimport cython
 from libc.stdio cimport fopen
 
-cdef void* zway_global = NULL
+class ZWDeviceChangeType:
+    DeviceAdded = 0x01
+    DeviceRemoved = 0x02
+    InstanceAdded = 0x04
+    InstanceRemoved = 0x08
+    CommandAdded = 0x10
+    CommandRemoved = 0x20
+    ZDDXSaved = 0x100
 
-cdef void c_termination_callback(libzway.ZWay zway):
-    global zway_global
-    (<ZWay?>zway_global).on_terminate()
+class ZWError:
+    NoError = 0
+    InvalidArg = -1
+    BadAllocation = -2
+    NotImplemented = -3
+    NotSupported = -4
+    AccessDenied = -5
+    ThreadingError = -6
+    InvalidOperation = -7
+    InternalError = -8
+    BadData = -9
+    InvalidType = -10
+    InvalidThread = -12
+    InvalidPort = -20
+    InvalidConfig = -21
+    NotPrimary = -25
+    JobNotFound = -30
+    JobAlreadyAdded = -31
+    DuplicateObject = -32
+    PacketTooBig = -40
 
-cdef void c_device_callback(libzway.ZWay wzay, int type, unsigned char node_id, unsigned char instance_id, unsigned char command_id, void *arg):
-    global zway_global
-    (<ZWay?>zway_global).on_device(type, node_id, instance_id, command_id)
+class ZWLogLevel:
+    Debug = 0
+    Verbose = 1
+    Information = 2
+    Warning = 3
+    Error = 4
+    Critical = 5
+    Silent = 6
+
+class ZWControllerState:
+    Idle = 0
+    AddReady = 1
+    AddNodeFound = 2
+    AddLearning = 3
+    AddDone = 4
+    RemoveReady = 5
+    RemoveNodeFound = 6
+    RemoveLearning = 7
+    LearnStarted = 8
+    LearnReady = 9
+    LearnNodeFound = 10
+    LearnLearning = 11
+    LearnDone = 12
+    ShiftReady = 13
+    ShiftNodeFound =14
+    ShiftLearning = 15
+    ShiftDone = 16
+
+class ZWDataType:
+    Empty = 0
+    Boolean = 1
+    Integer = 2
+    Float = 3
+    String = 4
+    Binary = 5
+    ArrayOfInteger = 6
+    ArrayOfFloat = 7
+    ArrayOfString = 8
+
+class ZWDataChangeType:
+    Updated = 0x01
+    Invalidated = 0x02
+    Deleted = 0x03
+    ChildCreated = 0x04
+    PhantomUpdate = 0x40
+    ChildEvent = 0x80
 
 class ZWDeviceChangeType:
     DeviceAdded = 0x01
@@ -20,6 +87,16 @@ class ZWDeviceChangeType:
     CommandAdded = 0x10
     CommandRemoved = 0x20
     ZDDXSaved = 0x100
+
+cdef void* zway_global = NULL
+
+cdef void c_termination_callback(libzway.ZWay zway):
+    global zway_global
+    (<ZWay?>zway_global).on_terminate()
+
+cdef void c_device_callback(libzway.ZWay wzay, int type, unsigned char node_id, unsigned char instance_id, unsigned char command_id, void *arg):
+    global zway_global
+    (<ZWay?>zway_global).on_device(type, node_id, instance_id, command_id)
 
 cdef class ZWay:
     cdef libzway.ZWay _zway
@@ -292,8 +369,3 @@ cdef class ZWay:
 
     def command_is_supported(self, int node_id, int instance_id, int command_id):
         return libzway.zway_command_is_supported(self._zway, <unsigned char> node_id, <unsigned char> instance_id, <unsigned char> command_id) != 0
-
-
-
-
-
