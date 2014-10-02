@@ -16,7 +16,7 @@ This extension can be complied on Raspberry Pi only after installation of Z-Way 
 
 ## Usage
 
-Import ZWay class from zway module. You can inherit from it in order to override callbacks. Detailed documentation is pending, see src/zway.pyx comments for now.
+Import ZWay class from zway module. You can inherit from it in order to override callbacks. Detailed documentation is pending, see pyzberry/zway.pyx comments for now.
 
 If you have a problem with error saying `ImportError: libzway.so: cannot open shared object file: No such file or directory` - execute the following `export LD_LIBRARY_PATH=/opt/z-way-server/libs/:$LD_LIBRARY_PATH` or just copy /opt/z-way-server/libs/libzway.so to /usr/lib directory.
 

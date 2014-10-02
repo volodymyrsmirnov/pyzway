@@ -13,7 +13,7 @@ setup(
     platforms=["raspberry-pi"],
     ext_modules=cythonize([
         Extension(
-            "zway", ["src/zway.pyx"],
+            "zway", ["pyzberry/zway.pyx"],
             include_dirs=["/opt/z-way-server/libzway-dev"],
             library_dirs=["/opt/z-way-server/libs"],
             libraries=["zway", "pthread", "xml2", "z", "m", "crypto", "archive"]

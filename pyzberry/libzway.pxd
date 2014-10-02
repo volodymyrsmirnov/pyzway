@@ -1,5 +1,8 @@
 from libc.stdio cimport FILE
 
+cdef extern from "Python.h":
+    void PyEval_InitThreads()
+
 cdef extern from "ZWayLib.h":
     ctypedef long time_t
 
