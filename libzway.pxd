@@ -23,6 +23,9 @@ cdef extern from "ZWayLib.h":
     ctypedef int ZWDeviceChangeType
     ctypedef unsigned char ZWBOOL
     ctypedef unsigned char ZWBYTE
+    ctypedef ZWBYTE* ZWDevicesList
+    ctypedef ZWBYTE* ZWInstancesList
+    ctypedef ZWBYTE* ZWCommandClassesList
 
     ctypedef void (*ZTerminationCallback)(const ZWay zway)
     ctypedef void (*ZDeviceCallback)(const ZWay wzay, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id, void *arg);
@@ -84,3 +87,31 @@ cdef extern from "ZWayLib.h":
     ZWError zway_controller_disable_suc_node_id(ZWay zway, ZWBYTE node_id)
 
     ZWError zway_controller_change(ZWay zway, ZWBOOL startStop)
+
+    ZWError zway_controller_add_node_to_network(ZWay zway, ZWBOOL startStop)
+
+    ZWError zway_controller_remove_node_from_network(ZWay zway, ZWBOOL startStop)
+
+    ZWError zway_controller_set_learn_mode(ZWay zway, ZWBOOL startStop)
+
+    ZWError zway_controller_set_default(ZWay zway)
+
+    ZWError zway_controller_config_save(ZWay zway, ZWBYTE **data, size_t *length)
+
+    ZWError zway_controller_config_restore(ZWay zway, const ZWBYTE *data, size_t length, ZWBOOL full)
+
+    ZWError zddx_save_to_xml(const ZWay zway)
+
+    ZWDevicesList zway_devices_list(const ZWay zway)
+
+    void zway_devices_list_free(ZWDevicesList list)
+
+    ZWInstancesList zway_instances_list(const ZWay zway, ZWBYTE deviceId)
+
+    void zway_instances_list_free(ZWInstancesList list)
+
+    ZWCommandClassesList zway_command_classes_list(const ZWay zway, ZWBYTE deviceId, ZWBYTE instanceId)
+
+    void zway_command_classes_list_free(ZWCommandClassesList list)
+
+    ZWBOOL zway_command_is_supported(const ZWay zway, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id)

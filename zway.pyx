@@ -1,6 +1,7 @@
 cimport libzway
 cimport cython
 from libc.stdio cimport fopen
+from libc.stdlib cimport free
 
 cdef ZWay zway_global
 
@@ -147,12 +148,17 @@ cdef class ZWay:
         results = []
 
         cdef libzway.ZGuessedProduct* products = libzway.zway_device_guess(self._zway, node_id)
-        cdef libzway.ZGuessedProduct product = products[0]
+        cdef libzway.ZGuessedProduct product = NULL
 
-        if product != NULL:
-            iterator = 1
+        if products != NULL:
+            i = 0
 
-            while product != NULL:
+            while True:
+                product = products[i]
+
+                if product == NULL:
+                    break
+
                 results.append({
                     "score": product.score,
                     "vendor": product.vendor,
@@ -161,8 +167,7 @@ cdef class ZWay:
                     "file_name": product.file_name,
                 })
 
-                product = products[iterator]
-                iterator += 1
+                i += 1
 
         libzway.zway_device_guess_free(products)
 
@@ -305,6 +310,188 @@ cdef class ZWay:
         :param state: disable if 0 else enable
         """
         return libzway.zway_controller_change(self._zway, state)
+
+
+    def controller_add_node_to_network(self, state):
+        """
+        Start/stop inclusion of a new node
+
+        :param state: disable if 0 else enable
+        """
+        return libzway.zway_controller_add_node_to_network(self._zway, state)
+
+
+    def controller_remove_node_from_network(self, state):
+        """
+        Start/stop exclusion of a node
+
+        :param state: disable if 0 else enable
+        """
+        return libzway.zway_controller_remove_node_from_network(self._zway, state)
+
+
+    def controller_set_learn_mode(self, state):
+        """
+        Set/stop Learn mode
+
+        :param state: disable if 0 else enable:
+        """
+        return libzway.zway_controller_set_learn_mode(self._zway, state)
+
+
+    def controller_set_default(self):
+        """
+        Reset the controller
+        """
+        return libzway.zway_controller_set_default(self._zway)
+
+
+    def controller_config_save(self, file_name):
+        """
+        Saves controller configuration, defaults and other needed files as tgz archive
+
+        :param file_name: file name to save config
+        """
+        cdef size_t data_length = 0
+        cdef libzway.ZWBYTE *data = NULL
+
+        errno = libzway.zway_controller_config_save(self._zway, &data, &data_length)
+
+        if errno == 0 and data != NULL:
+            bytes_string = data[:data_length]
+
+            with open(file_name, "wb") as config_file:
+                config_file.write(bytes_string)
+
+            free(data)
+
+        return errno
+
+
+    def config_restore(self, file_name, full):
+        """
+        Restores controller configuration, defaults and other needed files from tgz archive
+
+        :param file_name: file name to restore from
+        :param full: 1 if full else 0
+        """
+        bytes_string = ""
+
+        with open(file_name, "wb") as config_file:
+            bytes_string = config_file.readall()
+
+        return libzway.zway_controller_config_restore(self._zway, bytes_string, len(bytes_string), full)
+
+
+    def zddx_save_to_xml(self):
+        """
+        Save all Z-Way data to the disc
+        """
+        return libzway.zddx_save_to_xml(self._zway)
+
+
+    def devices_list(self):
+        """
+        Returns list of registered devices Node Id
+        """
+        results = []
+
+        cdef libzway.ZWDevicesList devices = libzway.zway_devices_list(self._zway)
+        cdef libzway.ZWBYTE node_id = 0
+
+        i = 0
+
+        while True:
+            node_id = devices[i]
+
+            if node_id == 0:
+                break
+
+            results.append(node_id)
+
+            i += 1
+
+        libzway.zway_devices_list_free(devices)
+
+        return results
+
+
+    def instances_list(self, device_id):
+        """
+        Returns list of registered instances Id for specified device
+
+        :param device_id: device id
+        """
+        results = []
+
+        cdef libzway.ZWInstancesList instances = libzway.zway_instances_list(self._zway, device_id)
+        cdef libzway.ZWBYTE instance_id = 0
+
+        i = 0
+
+        while True:
+            instance_id = instances[i]
+
+            if instance_id == 0:
+                break
+
+            results.append(instance_id)
+
+            i += 1
+
+        libzway.zway_instances_list_free(instances)
+
+        return results
+
+
+    def command_classes_list(self, device_id, instance_id):
+        """
+        Returns list of registered Command Classes Id for specified instance of device
+
+        :param device_id: device id
+        :param instance_id: instance id
+        """
+        results = []
+
+        cdef libzway.ZWCommandClassesList c_classes = libzway.zway_command_classes_list(self._zway, device_id,
+                                                                                        instance_id)
+        cdef libzway.ZWBYTE c_class = 0
+
+        i = 0
+
+        while True:
+            c_class = c_classes[i]
+
+            if c_class == 0:
+                break
+
+            results.append(c_class)
+
+            i += 1
+
+        libzway.zway_command_classes_list_free(c_classes)
+
+        return results
+
+
+    def command_is_supported(self, node_id, instance_id, command_id):
+        """
+        Returns if command class both exists for specified instance of device, and is rendered as supported
+
+        :param node_id: device id
+        :param instance_id: instance id
+        :param command_id: command id
+        """
+        return libzway.zway_command_is_supported(self._zway, node_id, instance_id, command_id) != 0
+
+
+
+
+
+
+
+
+
 
 
 
