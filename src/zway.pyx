@@ -1,7 +1,6 @@
-cimport libzway
-cimport cython
 from libc.stdio cimport fopen
 from libc.stdlib cimport free
+from src cimport libzway
 
 cdef ZWay zway_global
 
