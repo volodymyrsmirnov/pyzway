@@ -4,7 +4,7 @@ from Cython.Build import cythonize
 
 setup(
     name="PyZberry",
-    version="1.0.0.0",
+    version="0.0.1",
     description="Cython wrapper for RaZberry C API",
     author="Vladimir Smirnov",
     author_email="vladimir@smirnov.im",
@@ -13,7 +13,7 @@ setup(
     platforms=["raspberry-pi"],
     ext_modules=cythonize([
         Extension(
-            "zway", ["pyzberry/zway.pyx"],
+            "zway", ["zway.pyx"],
             include_dirs=["/opt/z-way-server/libzway-dev"],
             library_dirs=["/opt/z-way-server/libs"],
             libraries=["zway", "pthread", "xml2", "z", "m", "crypto", "archive"]

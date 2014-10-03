@@ -1,36 +1,46 @@
+"""
+Copyright (C) 2014, Vladimir Smirnov (vladimir@smirnov.im)
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the license for more details.
+"""
+
+cimport cython
 from libc.stdio cimport fopen
-from libc.stdlib cimport free
-from pyzberry cimport libzway as zw
-from cpython cimport pythread
+from libc.stdlib cimport free, malloc
+from cpython.pythread cimport PyThread_start_new_thread
+cimport libzway as zw
 
-cdef ZWay zway_global
+"""
+Why do we need callback and caller functions per each callback?
 
-cdef pythread.PyThread_type_lock lock = pythread.PyThread_allocate_lock()
+Because the bare C callback behaves pretty much strange. When I enable GIL bypassing "with gil" in function definition -
+execution enters the deadlock in caller thread with pthread sem_wait. Without GIL it causes the SEGFAULT, so the only
+working solution I was able to find is to pass pointer with data into the new PyThread where we execute python callback.
 
-cdef void c_termination_callback(const zw.ZWay zway):
-    """
-    Callback for on_terminate method from ZWay instance
+Know the better way? Drop me a line at vladimir@smirnov.im or send a pull request on github.
+"""
 
-    :param zway: ZWay pointer
-    """
-    global zway_global
-    zway_global.on_terminate()
+cdef void c_device_caller(void* info_p) with gil:
+    cdef zw.DeviceCallbackInfo info = <zw.DeviceCallbackInfo> info_p
 
+    if info.instance != NULL:
+        (<ZWay> info.instance).on_device(info.type, info.node_id, info.instance_id, info.command_id)
 
-cdef void c_device_callback(const zw.ZWay zway, zw.ZWDeviceChangeType type, zw.ZWBYTE node_id,
-                            zw.ZWBYTE instance_id, zw.ZWBYTE command_id, void *arg):
-    """
-    Callback for on_device method from ZWay instance
+    free(info_p)
 
-    :param zway: ZWay pointer
-    :param type: change type
-    :param node_id: node id
-    :param instance_id: instance id
-    :param command_id: command id
-    :param arg: callback arguments pointer
-    """
-    global zway_global
-    zway_global.on_device(type, node_id, instance_id, command_id)
+cdef void c_device_callback(const zw.ZWay zway, zw.ZWDeviceChangeType type, zw.ZWBYTE node_id, zw.ZWBYTE instance_id,
+                            zw.ZWBYTE command_id, void *arg):
+
+    cdef zw.DeviceCallbackInfo info = <zw.DeviceCallbackInfo> malloc(cython.sizeof(zw.DeviceCallbackInfo))
+    info.type = type
+    info.node_id = node_id
+    info.instance_id = instance_id
+    info.command_id = command_id
+    info.instance = arg
+
+    PyThread_start_new_thread(c_device_caller, <void *> info)
 
 
 cdef class ZWay:
@@ -64,11 +74,6 @@ cdef class ZWay:
         :param log: path to the log file
         :param level: logging level, from 0 to 7 where 7 is silent log
         """
-        global zway_global
-        zway_global = self
-
-        # Initialize threads, required for callbacks
-        # Fix for SEGFAULT
         zw.PyEval_InitThreads()
 
         errno =  zw.zway_init(
@@ -85,6 +90,7 @@ cdef class ZWay:
         Save state, close all handles and deallocate a ZWay object
         """
         zw.zway_terminate(&self._zway)
+        self.on_terminate()
 
 
     def set_log(self, bytes log, int level):
@@ -101,7 +107,7 @@ cdef class ZWay:
         """
         Start worker thread and open port
         """
-        return zw.zway_start(self._zway, c_termination_callback)
+        return zw.zway_start(self._zway, NULL)
 
 
     def stop(self):
@@ -202,7 +208,7 @@ cdef class ZWay:
         CommandRemoved = 0x20,
         ZDDXSaved = 0x100
         """
-        return zw.zway_device_add_callback(self._zway, mask, c_device_callback, NULL)
+        return zw.zway_device_add_callback(self._zway, mask, c_device_callback, <void *> self)
 
 
     def device_remove_callback(self):

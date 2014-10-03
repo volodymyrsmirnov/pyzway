@@ -1,7 +1,16 @@
+"""
+ Copyright (C) 2014, Vladimir Smirnov (vladimir@smirnov.im)
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE.  See the license for more details.
+"""
+
 from libc.stdio cimport FILE
 
 cdef extern from "Python.h":
     void PyEval_InitThreads()
+
 
 cdef extern from "ZWayLib.h":
     ctypedef long time_t
@@ -118,3 +127,15 @@ cdef extern from "ZWayLib.h":
     void zway_command_classes_list_free(ZWCommandClassesList list)
 
     ZWBOOL zway_command_is_supported(const ZWay zway, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id)
+
+
+# Internal definitions
+
+cdef struct _DeviceCallbackInfo:
+        ZWDeviceChangeType type
+        ZWBYTE node_id
+        ZWBYTE instance_id
+        ZWBYTE command_id
+        void* instance
+
+ctypedef _DeviceCallbackInfo* DeviceCallbackInfo
