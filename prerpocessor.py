@@ -9,7 +9,7 @@
 import re
 
 def parse_definition_file(file_name, ignore=list()):
-    function_re = re.compile(r"^(?P<export>\w+)\s+(?P<return>\w+)\s+(?P<name>\w+)\((?P<arguments>.*)\);")
+    function_re = re.compile(r"^(?P<export>\w+)\s+(?P<return>[\w\*]+)\s+(?P<name>[\w\*]+)\((?P<arguments>.*)\);")
 
     with open(file_name, "r") as def_file:
         lines = def_file.readlines()
@@ -24,7 +24,7 @@ def parse_definition_file(file_name, ignore=list()):
 
         match_result = match_result.groupdict()
 
-        if match_result["name"] in ignore:
+        if match_result["name"].replace("*", "") in ignore:
             continue
 
         function = {
@@ -65,13 +65,17 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
 
     for function in parsing_result:
         result += prepend
-        result += "def {0}(".format(function["name"].replace("zway_", ""))
+        result += "def {0}(".format(function["name"].replace("zway_", "").replace("*", ""))
 
         has_job_callbacks = False
+        has_data_callbacks = False
 
         def_arguments = ["self"]
 
         for argument_type, argument_name in function["arguments"]:
+            if argument_type == "ZJobCustomCallback":
+                has_job_callbacks = True
+
             if argument_type == "ZJobCustomCallback":
                 has_job_callbacks = True
 
@@ -88,7 +92,7 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
         if function["return"] != "void":
             result += "return "
 
-        result += "zw.{0}(self._zway".format(function["name"])
+        result += "zw.{0}(self._zway".format(function["name"].replace("*", ""))
 
         if len(def_arguments[1:]):
             result += ", " + ", ".join(def_arguments[1:])

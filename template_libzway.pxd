@@ -56,9 +56,7 @@ cdef extern from "ZWayLib.h":
 
     # ZWayLib.h
 
-    ZGuessedProduct *zway_device_guess(const ZWay zway, ZWBYTE node_id)
-
-#GENPXD:ZWayLib.h:zway_device_add_callback_ex,zway_device_remove_callback_ex,zway_device_guess
+#GENPXD:ZWayLib.h:zway_device_add_callback_ex,zway_device_remove_callback_ex
 
     # CommandClassesPublic.h
 
@@ -68,10 +66,9 @@ cdef extern from "ZWayLib.h":
 
 #GENPXD:FunctionClassesPublic.h:
 
-
     # ZDataPublic.h
 
-#GENPXD:ZDataPublic.h:
+#GENPXD:ZDataPublic.h:zway_data_add_callback_ex,zway_data_remove_callback_ex
 
 # Internal definitions
 
