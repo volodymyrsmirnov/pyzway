@@ -14,7 +14,7 @@ Use the following manual for Raspberry Pi http://razberry.z-wave.me/index.php?id
 
 * Install Cython - `sudo pip install cython`, tested on version 0.20.1, the one provided in apt (0.15) wouldn't work.
 * Install required dependencies  - `sudo apt-get install python-dev libarchive-dev build-essential`
-* Compile and install the extension - `sudo python setup.py install`
+* Compile and install the extension - `sudo python setup.py prepare build_ext install`
 
 ## Usage
 
