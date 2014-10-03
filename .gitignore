@@ -2,3 +2,5 @@
 build
 zway.c
 test.py
+zway.pyx
+libzway.pxd
