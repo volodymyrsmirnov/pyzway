@@ -254,3 +254,6 @@ cdef class ZWay:
 
 #GENPYX:CommandClassesPublic.h:zway_cc_firmware_update_perform
 
+
+#GENPYX:FunctionClassesPublic.h:
+

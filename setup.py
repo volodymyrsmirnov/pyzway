@@ -6,7 +6,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 """
 
-from distutils.core import setup
+from distutils.core import setup, Command
 from distutils.extension import Extension
 from distutils.command.clean import clean
 from Cython.Distutils import build_ext
@@ -33,7 +33,16 @@ class PyzberryCleaner(clean):
         clean.run(self)
 
 
-class PyzberryPreprocessor(build_ext):
+class PyzberryPreprocessor(Command):
+    description = "preprocess c headers and generate pxd and pyx cython files"
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
     def run(self):
         for template, output in TEMPLATES:
             with open(template, "r") as template_file:
@@ -57,7 +66,6 @@ class PyzberryPreprocessor(build_ext):
                             template_file_content = template_file_content.replace(line, content)
                             output_file.write(template_file_content)
 
-        build_ext.run(self)
 
 setup(
     name="PyZWay",
@@ -68,7 +76,7 @@ setup(
     url="https://github.com/mindcollapse/razberry-python",
     license="BSD",
     cmdclass={
-        "build_ext": PyzberryPreprocessor,
+        "prepare": PyzberryPreprocessor,
         "clean": PyzberryCleaner
     },
     ext_modules=[

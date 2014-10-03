@@ -53,7 +53,9 @@ def generate_pxd(parsing_result, prepend="    ", append="\n\n"):
             function["name"],
             ", ".join(" ".join(argument) for argument in function["arguments"])
         )
-        result += append
+
+        if function != parsing_result[-1]:
+            result += append
 
     return result
 
@@ -67,7 +69,6 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
 
         has_job_callbacks = False
 
-
         def_arguments = ["self"]
 
         for argument_type, argument_name in function["arguments"]:
@@ -76,6 +77,8 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
 
             if argument_type in ["ZWay", "const ZWay", "ZJobCustomCallback", "void*", "size_t"]:
                 continue
+
+            argument_name = argument_name.replace("*", "")
 
             def_arguments.append(argument_name)
 
@@ -87,7 +90,7 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
 
         result += "zw.{0}(self._zway".format(function["name"])
 
-        if len(def_arguments):
+        if len(def_arguments[1:]):
             result += ", " + ", ".join(def_arguments[1:])
 
         if has_job_callbacks:
@@ -98,6 +101,7 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
         if function["return"] == "ZWBOOL":
             result += " != 0"
 
-        result += append
+        if function != parsing_result[-1]:
+            result += append
 
     return result

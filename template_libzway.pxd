@@ -52,6 +52,10 @@ cdef extern from "ZWayLib.h":
 
 #GENPXD:CommandClassesPublic.h:
 
+    # FunctionClassesPublic.h
+
+#GENPXD:FunctionClassesPublic.h:
+
 # Internal definitions
 
 cdef struct _DeviceCallbackInfo:
