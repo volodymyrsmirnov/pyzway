@@ -10,7 +10,7 @@ This extension can be complied on Raspberry Pi only after installation of Z-Way 
 
 ## Installation
 
-* Install Cython - `sudo pip install cython` or `sudo apt-get install cython`
+* Install Cython - `sudo pip install cython`, tested on version 0.20.1, the one provided in apt (0.15) would'nt work.
 * Install required dependencies  - `sudo apt-get install python-dev libarchive-dev build-essential`
 * Compile and install the extension - `sudo python setup.py install`
 
@@ -21,7 +21,3 @@ Import ZWay class from zway module. You can inherit from it in order to override
 If you have a problem with error saying `ImportError: libzway.so: cannot open shared object file: No such file or directory` - execute the following `export LD_LIBRARY_PATH=/opt/z-way-server/libs/:$LD_LIBRARY_PATH` or just copy /opt/z-way-server/libs/libzway.so to /usr/lib directory.
 
 Example application is pending.
-
-## Limitations
-
-Because we use the global variable to store ZWay pointer, you can use this lib in single-threaded applications only. Only 1 instance of ZWay class is possible in one application at the same time. This might (and definitely would) change in a future.
