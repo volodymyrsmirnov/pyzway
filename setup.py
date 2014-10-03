@@ -60,14 +60,13 @@ class PyzberryPreprocessor(build_ext):
         build_ext.run(self)
 
 setup(
-    name="PyZberry",
+    name="PyZWay",
     version="0.0.2",
-    description="Cython wrapper for RaZberry C API",
+    description="Cython wrapper for PyZWay C API",
     author="Vladimir Smirnov",
     author_email="vladimir@smirnov.im",
     url="https://github.com/mindcollapse/razberry-python",
     license="BSD",
-    platforms=["raspberry-pi"],
     cmdclass={
         "build_ext": PyzberryPreprocessor,
         "clean": PyzberryCleaner
