@@ -28,6 +28,16 @@ cdef extern from "ZWayLib.h":
 
     ctypedef _ZGuessedProduct *ZGuessedProduct
 
+    cdef struct _ZDataHolder
+    ctypedef _ZDataHolder *ZDataHolder
+
+    cdef struct _ZDataIterator:
+        ZDataHolder data
+
+    ctypedef _ZDataIterator *ZDataIterator
+
+    ctypedef int ZWDataChangeType
+
     ctypedef int ZWError
     ctypedef char* ZWCSTR
     ctypedef int ZWLogLevel
@@ -37,10 +47,12 @@ cdef extern from "ZWayLib.h":
     ctypedef ZWBYTE* ZWDevicesList
     ctypedef ZWBYTE* ZWInstancesList
     ctypedef ZWBYTE* ZWCommandClassesList
+    ctypedef ZWBYTE ZWDataType
 
     ctypedef void (*ZTerminationCallback)(const ZWay zway)
     ctypedef void (*ZDeviceCallback)(const ZWay wzay, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id, void *arg)
     ctypedef void (*ZJobCustomCallback)(const ZWay zway, ZWBYTE functionId, void* arg)
+    ctypedef void (*ZDataChangeCallback)(const ZWay wzay, ZWDataChangeType type, ZDataHolder data, void *arg)
 
     # ZWayLib.h
 
@@ -55,6 +67,11 @@ cdef extern from "ZWayLib.h":
     # FunctionClassesPublic.h
 
 #GENPXD:FunctionClassesPublic.h:
+
+
+    # ZDataPublic.h
+
+#GENPXD:ZDataPublic.h:
 
 # Internal definitions
 

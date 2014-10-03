@@ -6,13 +6,13 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 """
 
+import os
+
 from distutils.core import setup, Command
 from distutils.extension import Extension
 from distutils.command.clean import clean
 from Cython.Distutils import build_ext
-from Cython.Build import cythonize
 
-import os
 from prerpocessor import *
 
 INCLUDE_DIRECTORY = os.environ.get("ZWAY_INC_PATH", "/opt/z-way-server/libzway-dev")
@@ -76,6 +76,7 @@ setup(
     url="https://github.com/mindcollapse/razberry-python",
     license="BSD",
     cmdclass={
+        "build_ext": build_ext,
         "prepare": PyzberryPreprocessor,
         "clean": PyzberryCleaner
     },
