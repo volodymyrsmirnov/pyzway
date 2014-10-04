@@ -76,9 +76,6 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
             if argument_type == "ZJobCustomCallback":
                 has_job_callbacks = True
 
-            if argument_type == "ZJobCustomCallback":
-                has_job_callbacks = True
-
             if argument_type in ["ZWay", "const ZWay", "ZJobCustomCallback", "void*", "size_t"]:
                 continue
 

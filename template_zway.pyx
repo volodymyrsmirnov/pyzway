@@ -11,6 +11,7 @@ from libc.stdio cimport fopen
 from libc.stdlib cimport free, malloc
 from cpython.pythread cimport PyThread_start_new_thread
 cimport libzway as zw
+import time
 
 """
 Why do we need callback and caller functions per each callback?
@@ -74,9 +75,6 @@ cdef void c_job_failure_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void
 cdef class ZWay:
     cdef zw.ZWay _zway
 
-    def on_terminate(self):
-        pass
-
 
     def on_device(self, type, node_id, instance_id, command_id):
         pass
@@ -101,7 +99,6 @@ cdef class ZWay:
 
     def terminate(self):
         zw.zway_terminate(&self._zway)
-        self.on_terminate()
 
 
     def set_log(self, bytes log, int level):
@@ -281,16 +278,48 @@ cdef class ZWayData:
 
     @property
     def type(self):
-        cdef zw.ZWDataType type
+        cdef zw.ZWDataType dtype
 
         zw.zway_data_acquire_lock(self.controller._zway)
 
-        if zw.zway_data_get_type(self.controller._zway, self.holder, &type) != 0:
-            return 0
+        if zw.zway_data_get_type(self.controller._zway, self.holder, &dtype) != 0:
+            dtype = 0
 
         zw.zway_data_release_lock(self.controller._zway)
 
         return type
+
+    @property
+    def path(self):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        path = zw.zway_data_get_path(self.controller._zway, self.holder)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return path
+
+
+    @property
+    def update_time(self):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        cdef zw.time_t timestamp = zw.zway_data_get_update_time(self.holder)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return time.gmtime(timestamp/1000)
+
+
+    @property
+    def invalidate_time(self):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        cdef zw.time_t timestamp = zw.zway_data_get_invalidate_time(self.holder)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return time.gmtime(timestamp/1000)
 
 
     @property
@@ -342,7 +371,7 @@ cdef class ZWayData:
             zw.zway_data_get_string(self.controller._zway, self.holder, &str_val)
             zw.zway_data_release_lock(self.controller._zway)
 
-            return <bytes> str_val
+            return str_val
 
         # Binary
         elif result_type == 5:
@@ -377,6 +406,77 @@ cdef class ZWayData:
             zw.zway_data_release_lock(self.controller._zway)
 
             for i in range(0, length):
-                result_list.append(<bytes> str_arr[i])
+                result_list.append(str_arr[i])
 
             return result_list
+
+    def set(self, value, is_binary = False):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        cdef int* ints = []
+        cdef float* floats = []
+        cdef zw.ZWCSTR* strings = []
+
+        if type(value) is None:
+            zw.zway_data_set_empty(self.controller._zway, self.holder)
+
+        elif type(value) is bool:
+            zw.zway_data_set_boolean(self.controller._zway, self.holder, 1 if value else 0)
+
+        elif type(value) is int:
+            zw.zway_data_set_integer(self.controller._zway, self.holder, value)
+
+        elif type(value) is float:
+            zw.zway_data_set_float(self.controller._zway, self.holder, value)
+
+        elif type(value) is bytes:
+            zw.zway_data_set_string(self.controller._zway, self.holder, value, 1)
+
+        elif type(value) is bytes and is_binary:
+            zw.zway_data_set_binary(self.controller._zway, self.holder, value, len(value), 1)
+
+        elif type(value) is list:
+            if all(isinstance(x, int) for x in value):
+                ints = <int *>malloc(len(value) * cython.sizeof(int))
+
+                for i in range(len(value)):
+                    ints[i] = value[i]
+
+                zw.zway_data_set_integer_array(self.controller._zway, self.holder, ints, len(value))
+
+                free(ints)
+
+            elif all(isinstance(x, float) for x in value):
+                floats = <float *>malloc(len(value) * cython.sizeof(float))
+
+                for i in range(len(value)):
+                    floats[i] = value[i]
+
+                zw.zway_data_set_float_array(self.controller._zway, self.holder, floats, len(value))
+
+                free(floats)
+
+            elif all(isinstance(x, bytes) for x in value):
+                strings = <zw.ZWCSTR *>malloc(len(value) * cython.sizeof(zw.ZWCSTR))
+
+                for i in range(len(value)):
+                    strings[i] = value[i]
+
+                zw.zway_data_set_string_array(self.controller._zway, self.holder, strings, len(value), 1)
+
+                free(strings)
+
+            else:
+                raise ValueError("Unsupported list in value")
+        else:
+            raise ValueError("Unsupported value")
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+
+    def invalidate(self, children=1):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        zw.zway_data_invalidate(self.controller._zway, self.holder, children)
+
+        zw.zway_data_release_lock(self.controller._zway)
