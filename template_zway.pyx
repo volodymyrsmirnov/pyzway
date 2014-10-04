@@ -433,6 +433,7 @@ cdef class ZWayData:
 
             return result_list
 
+
     def set(self, value, is_binary = False):
         zw.zway_data_acquire_lock(self.controller._zway)
 
@@ -548,37 +549,39 @@ cdef class ZWayData:
         return new_data
 
 
-    def find_controller_data(self, bytes path):
-        zw.zway_data_acquire_lock(self.controller._zway)
+    @staticmethod
+    def find_controller_data(ZWay controller, bytes path):
+        zw.zway_data_acquire_lock(controller._zway)
 
-        cdef zw.ZDataHolder holder = zw.zway_find_controller_data(self.controller._zway, path)
+        cdef zw.ZDataHolder holder = zw.zway_find_controller_data(controller._zway, path)
 
-        new_data = ZWayData(self.controller)
+        new_data = ZWayData(controller)
         new_data.set_holder(holder)
 
-        zw.zway_data_release_lock(self.controller._zway)
+        zw.zway_data_release_lock(controller._zway)
 
         return new_data
 
 
-    def find_device_data(self, bytes path, device, instance=None, command_class=None):
-        zw.zway_data_acquire_lock(self.controller._zway)
+    @staticmethod
+    def find_device_data(ZWay controller, bytes path, device, instance=None, command_class=None):
+        zw.zway_data_acquire_lock(controller._zway)
 
         cdef zw.ZDataHolder holder = NULL
 
         if command_class is None and instance is None:
-            holder = zw.zway_find_device_data(self.controller._zway, device, path)
+            holder = zw.zway_find_device_data(controller._zway, device, path)
 
         elif command_class is None and instance is not None:
-            holder = zw.zway_find_device_instance_data(self.controller._zway, device, instance, path)
+            holder = zw.zway_find_device_instance_data(controller._zway, device, instance, path)
 
         else:
-            holder = zw.zway_find_device_instance_cc_data(self.controller._zway, device, instance, command_class, path)
+            holder = zw.zway_find_device_instance_cc_data(controller._zway, device, instance, command_class, path)
 
-        new_data = ZWayData(self.controller)
+        new_data = ZWayData(controller)
         new_data.set_holder(holder)
 
-        zw.zway_data_release_lock(self.controller._zway)
+        zw.zway_data_release_lock(controller._zway)
 
         return new_data
 
