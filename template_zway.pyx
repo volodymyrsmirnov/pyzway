@@ -266,10 +266,10 @@ cdef class ZWay:
 #GENPYX:ZWayLib.h:zway_device_add_callback_ex,zway_device_remove_callback_ex,zway_command_classes_list_free,zway_command_classes_list,zway_instances_list_free,zway_instances_list,zway_devices_list,zway_devices_list_free,zway_controller_config_restore,zway_controller_config_restore,zway_controller_config_save,zway_device_guess_free,zway_device_guess,zway_start,zway_set_log,zway_terminate,zway_init,zway_device_add_callback,zway_device_remove_callback
 
 
-##GENPYX:CommandClassesPublic.h:zway_cc_firmware_update_perform
+#GENPYX:CommandClassesPublic.h:zway_cc_firmware_update_perform
 
 
-##GENPYX:FunctionClassesPublic.h:
+#GENPYX:FunctionClassesPublic.h:
 
 
 cdef class ZWayData:
@@ -309,6 +309,7 @@ cdef class ZWayData:
         zw.zway_data_release_lock(self.controller._zway)
 
         return type
+
 
     @property
     def path(self):
@@ -527,3 +528,56 @@ cdef class ZWayData:
         zw.zway_data_release_lock(self.controller._zway)
 
         return errno
+
+
+    cdef void set_holder(self, zw.ZDataHolder holder):
+        self.holder = holder
+
+
+    def find_data(self, bytes path):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        cdef zw.ZDataHolder holder = zw.zway_find_data(self.controller._zway, self.holder, path)
+
+        new_data = ZWayData(self.controller)
+        new_data.set_holder(holder)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return new_data
+
+
+    def find_controller_data(self, bytes path):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        cdef zw.ZDataHolder holder = zw.zway_find_controller_data(self.controller._zway, path)
+
+        new_data = ZWayData(self.controller)
+        new_data.set_holder(holder)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return new_data
+
+
+    def find_device_data(self, bytes path, device, instance=None, command_class=None):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        cdef zw.ZDataHolder holder = NULL
+
+        if command_class is None and instance is None:
+            holder = zw.zway_find_device_data(self.controller._zway, device, path)
+
+        elif command_class is None and instance is not None:
+            holder = zw.zway_find_device_instance_data(self.controller._zway, device, instance, path)
+
+        else:
+            holder = zw.zway_find_device_instance_cc_data(self.controller._zway, device, instance, command_class, path)
+
+        new_data = ZWayData(self.controller)
+        new_data.set_holder(holder)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return new_data
+

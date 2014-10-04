@@ -68,7 +68,6 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
         result += "def {0}(".format(function["name"].replace("zway_", "").replace("*", ""))
 
         has_job_callbacks = False
-        has_data_callbacks = False
 
         def_arguments = ["self"]
 
