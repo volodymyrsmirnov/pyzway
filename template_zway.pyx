@@ -80,6 +80,7 @@ cdef void c_data_caller(void* info_p) with gil:
 
     free(info_p)
 
+
 cdef void c_data_change_callback(const zw.ZWay wzay, zw.ZWDataChangeType type, zw.ZDataHolder data, void *arg):
     cdef zw.DataChangeCallbackInfo info = <zw.DataChangeCallbackInfo> malloc(cython.sizeof(zw.DataChangeCallbackInfo))
     info.type = type
@@ -580,4 +581,35 @@ cdef class ZWayData:
         zw.zway_data_release_lock(self.controller._zway)
 
         return new_data
+
+
+    @property
+    def children(self):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        result = []
+
+        cdef zw.ZDataIterator iterator = zw.zway_data_first_child(self.controller._zway, self.holder)
+
+        while iterator != NULL:
+            new_data = ZWayData(self.controller)
+            new_data.set_holder(iterator.data)
+
+            result.append(new_data)
+
+            iterator = zw.zway_data_next_child(iterator)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return result
+
+
+    def remove_child(self, ZWayData child):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        errno = zw.zway_data_remove_child(self.controller._zway, self.holder, child.holder)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return errno
 
