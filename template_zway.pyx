@@ -249,11 +249,134 @@ cdef class ZWay:
         return zw.zway_cc_firmware_update_perform(self._zway, node_id, instance_id, manufacturerId, firmwareId, firmwareTarget, len(data), data, c_job_success_callback, c_job_failure_callback, <void *> self)
 
 
-
 #GENPYX:ZWayLib.h:zway_device_add_callback_ex,zway_device_remove_callback_ex,zway_command_classes_list_free,zway_command_classes_list,zway_instances_list_free,zway_instances_list,zway_devices_list,zway_devices_list_free,zway_controller_config_restore,zway_controller_config_restore,zway_controller_config_save,zway_device_guess_free,zway_device_guess,zway_start,zway_set_log,zway_terminate,zway_init,zway_device_add_callback,zway_device_remove_callback
 
 
-#GENPYX:CommandClassesPublic.h:zway_cc_firmware_update_perform
+##GENPYX:CommandClassesPublic.h:zway_cc_firmware_update_perform
 
 
-#GENPYX:FunctionClassesPublic.h:
+##GENPYX:FunctionClassesPublic.h:
+
+
+cdef class ZWayData:
+    cdef zw.ZDataHolder holder
+    cdef ZWay controller
+
+
+    def __cinit__(self, ZWay controller):
+        self.controller = controller
+        self.holder = NULL
+
+
+    @property
+    def is_empty(self):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        empty = zw.zway_data_is_empty(self.controller._zway, self.holder) != 0
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return empty
+
+
+    @property
+    def type(self):
+        cdef zw.ZWDataType type
+
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        if zw.zway_data_get_type(self.controller._zway, self.holder, &type) != 0:
+            return 0
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return type
+
+
+    @property
+    def value(self):
+        cdef zw.ZWBOOL bool_val
+        cdef int int_val
+        cdef float float_val
+        cdef zw.ZWCSTR str_val
+        cdef const zw.ZWBYTE *binary
+        cdef const int *int_arr
+        cdef const float *float_arr
+        cdef const zw.ZWCSTR *str_arr
+        cdef size_t length
+
+        result_type = self.type
+        result_list = list()
+
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        # Empty
+        if result_type == 0:
+            zw.zway_data_release_lock(self.controller._zway)
+
+            return None
+
+        # Boolean
+        elif result_type == 1:
+            zw.zway_data_get_boolean(self.controller._zway, self.holder, &bool_val)
+            zw.zway_data_release_lock(self.controller._zway)
+
+            return bool_val != 0
+
+        # Integer
+        elif result_type == 2:
+            zw.zway_data_get_integer(self.controller._zway, self.holder, &int_val)
+            zw.zway_data_release_lock(self.controller._zway)
+
+            return int_val
+
+        # Float
+        elif result_type == 3:
+            zw.zway_data_get_float(self.controller._zway, self.holder, &float_val)
+            zw.zway_data_release_lock(self.controller._zway)
+
+            return float_val
+
+        # String
+        elif result_type == 4:
+            zw.zway_data_get_string(self.controller._zway, self.holder, &str_val)
+            zw.zway_data_release_lock(self.controller._zway)
+
+            return <bytes> str_val
+
+        # Binary
+        elif result_type == 5:
+            zw.zway_data_get_binary(self.controller._zway, self.holder, &binary, &length)
+            zw.zway_data_release_lock(self.controller._zway)
+
+            return <bytes> binary[:length]
+
+        # Array of integers
+        elif result_type == 6:
+            zw.zway_data_get_integer_array(self.controller._zway, self.holder, &int_arr, &length)
+            zw.zway_data_release_lock(self.controller._zway)
+
+            for i in range(0, length):
+                result_list.append(<int> int_arr[i])
+
+            return result_list
+
+        # Array of floats
+        elif result_type == 7:
+            zw.zway_data_get_float_array(self.controller._zway, self.holder, &float_arr, &length)
+            zw.zway_data_release_lock(self.controller._zway)
+
+            for i in range(0, length):
+                result_list.append(<float> float_arr[i])
+
+            return result_list
+
+        # Array of strings
+        elif result_type == 8:
+            zw.zway_data_get_string_array(self.controller._zway, self.holder, &str_arr, &length)
+            zw.zway_data_release_lock(self.controller._zway)
+
+            for i in range(0, length):
+                result_list.append(<bytes> str_arr[i])
+
+            return result_list
