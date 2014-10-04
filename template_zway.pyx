@@ -72,6 +72,23 @@ cdef void c_job_failure_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void
     PyThread_start_new_thread(c_job_caller, <void *> info)
 
 
+cdef void c_data_caller(void* info_p) with gil:
+    cdef zw.DataChangeCallbackInfo info = <zw.DataChangeCallbackInfo> info_p
+
+    if info.instance != NULL:
+        (<ZWayData> info.instance).on_data_change(info.type)
+
+    free(info_p)
+
+cdef void c_data_change_callback(const zw.ZWay wzay, zw.ZWDataChangeType type, zw.ZDataHolder data, void *arg):
+    cdef zw.DataChangeCallbackInfo info = <zw.DataChangeCallbackInfo> malloc(cython.sizeof(zw.DataChangeCallbackInfo))
+    info.type = type
+    info.data = data
+    info.instance = arg
+
+    PyThread_start_new_thread(c_data_caller, <void *> info)
+
+
 cdef class ZWay:
     cdef zw.ZWay _zway
 
@@ -167,7 +184,7 @@ cdef class ZWay:
         bytes_string = ""
 
         with open(file_name, "wb") as config_file:
-            bytes_string = config_file.readall()
+            bytes_string = config_file.read()
 
         return zw.zway_controller_config_restore(self._zway, bytes_string, len(bytes_string), full)
 
@@ -258,6 +275,10 @@ cdef class ZWay:
 cdef class ZWayData:
     cdef zw.ZDataHolder holder
     cdef ZWay controller
+
+
+    def on_data_change(self, change_type):
+        pass
 
 
     def __cinit__(self, ZWay controller):
@@ -417,23 +438,25 @@ cdef class ZWayData:
         cdef float* floats = []
         cdef zw.ZWCSTR* strings = []
 
+        errno = 0
+
         if type(value) is None:
-            zw.zway_data_set_empty(self.controller._zway, self.holder)
+            errno = zw.zway_data_set_empty(self.controller._zway, self.holder)
 
         elif type(value) is bool:
-            zw.zway_data_set_boolean(self.controller._zway, self.holder, 1 if value else 0)
+            errno = zw.zway_data_set_boolean(self.controller._zway, self.holder, 1 if value else 0)
 
         elif type(value) is int:
-            zw.zway_data_set_integer(self.controller._zway, self.holder, value)
+            errno = zw.zway_data_set_integer(self.controller._zway, self.holder, value)
 
         elif type(value) is float:
-            zw.zway_data_set_float(self.controller._zway, self.holder, value)
+            errno = zw.zway_data_set_float(self.controller._zway, self.holder, value)
 
         elif type(value) is bytes:
-            zw.zway_data_set_string(self.controller._zway, self.holder, value, 1)
+            errno = zw.zway_data_set_string(self.controller._zway, self.holder, value, 1)
 
         elif type(value) is bytes and is_binary:
-            zw.zway_data_set_binary(self.controller._zway, self.holder, value, len(value), 1)
+            errno =  zw.zway_data_set_binary(self.controller._zway, self.holder, value, len(value), 1)
 
         elif type(value) is list:
             if all(isinstance(x, int) for x in value):
@@ -442,7 +465,7 @@ cdef class ZWayData:
                 for i in range(len(value)):
                     ints[i] = value[i]
 
-                zw.zway_data_set_integer_array(self.controller._zway, self.holder, ints, len(value))
+                errno = zw.zway_data_set_integer_array(self.controller._zway, self.holder, ints, len(value))
 
                 free(ints)
 
@@ -452,7 +475,7 @@ cdef class ZWayData:
                 for i in range(len(value)):
                     floats[i] = value[i]
 
-                zw.zway_data_set_float_array(self.controller._zway, self.holder, floats, len(value))
+                errno = zw.zway_data_set_float_array(self.controller._zway, self.holder, floats, len(value))
 
                 free(floats)
 
@@ -462,7 +485,7 @@ cdef class ZWayData:
                 for i in range(len(value)):
                     strings[i] = value[i]
 
-                zw.zway_data_set_string_array(self.controller._zway, self.holder, strings, len(value), 1)
+                errno = zw.zway_data_set_string_array(self.controller._zway, self.holder, strings, len(value), 1)
 
                 free(strings)
 
@@ -473,10 +496,34 @@ cdef class ZWayData:
 
         zw.zway_data_release_lock(self.controller._zway)
 
+        return errno
 
-    def invalidate(self, children=1):
+
+    def invalidate(self, children=True):
         zw.zway_data_acquire_lock(self.controller._zway)
 
-        zw.zway_data_invalidate(self.controller._zway, self.holder, children)
+        errno = zw.zway_data_invalidate(self.controller._zway, self.holder, 1 if children else 0)
 
         zw.zway_data_release_lock(self.controller._zway)
+
+        return errno
+
+
+    def add_callback(self, watch_children=True):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        errno = zw.zway_data_add_callback(self.controller._zway, self.holder, c_data_change_callback, 1 if watch_children else 0, <void *>self)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return errno
+
+
+    def remove_callback(self):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        errno = zw.zway_data_remove_callback(self.controller._zway, self.holder, c_data_change_callback)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return errno

@@ -87,3 +87,10 @@ cdef struct _JobCallbackInfo:
     void* instance
 
 ctypedef _JobCallbackInfo* JobCallbackInfo
+
+cdef struct _DataChangeCallbackInfo:
+    ZWDataChangeType type
+    ZDataHolder data
+    void* instance
+
+ctypedef _DataChangeCallbackInfo* DataChangeCallbackInfo
