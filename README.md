@@ -126,5 +126,5 @@ software_revision = data["softwareRevisionVersion"]     # get the software revis
 print software_revision.value                           # outputs v1.7.2
 ```
 
-You can also set data when it's supported.
+You can also set data with the same syntax when it's supported.
 
