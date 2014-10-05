@@ -90,7 +90,7 @@ cdef void c_data_change_callback(const zw.ZWay wzay, zw.ZWDataChangeType type, z
     PyThread_start_new_thread(c_data_caller, <void *> info)
 
 
-cdef class ZWay:
+cdef class ZWay(object):
     cdef zw.ZWay _zway
 
 
@@ -273,7 +273,7 @@ cdef class ZWay:
 #GENPYX:FunctionClassesPublic.h:
 
 
-cdef class ZWayData:
+cdef class ZWayData(object):
     cdef zw.ZDataHolder holder
     cdef ZWay controller
 
@@ -285,6 +285,10 @@ cdef class ZWayData:
     def __cinit__(self, ZWay controller):
         self.controller = controller
         self.holder = NULL
+
+
+    def __repr__(self):
+        return """<ZWayData(path="{0}", type="{1}", value="{2}")>""".format(self.path, self.type, self.value)
 
 
     @property
@@ -309,7 +313,7 @@ cdef class ZWayData:
 
         zw.zway_data_release_lock(self.controller._zway)
 
-        return type
+        return dtype
 
 
     @property
@@ -321,6 +325,17 @@ cdef class ZWayData:
         zw.zway_data_release_lock(self.controller._zway)
 
         return path
+
+
+    @property
+    def name(self):
+        zw.zway_data_acquire_lock(self.controller._zway)
+
+        name = zw.zway_data_get_name(self.controller._zway, self.holder)
+
+        zw.zway_data_release_lock(self.controller._zway)
+
+        return name
 
 
     @property
@@ -443,7 +458,7 @@ cdef class ZWayData:
 
         errno = 0
 
-        if type(value) is None:
+        if value is None:
             errno = zw.zway_data_set_empty(self.controller._zway, self.holder)
 
         elif type(value) is bool:
@@ -493,8 +508,10 @@ cdef class ZWayData:
                 free(strings)
 
             else:
+                zw.zway_data_release_lock(self.controller._zway)
                 raise ValueError("Unsupported list in value")
         else:
+            zw.zway_data_release_lock(self.controller._zway)
             raise ValueError("Unsupported value")
 
         zw.zway_data_release_lock(self.controller._zway)
@@ -541,6 +558,9 @@ cdef class ZWayData:
 
         cdef zw.ZDataHolder holder = zw.zway_find_data(self.controller._zway, self.holder, path)
 
+        if holder == NULL:
+            raise KeyError("NULL data for path")
+
         new_data = ZWayData(self.controller)
         new_data.set_holder(holder)
 
@@ -554,6 +574,9 @@ cdef class ZWayData:
         zw.zway_data_acquire_lock(controller._zway)
 
         cdef zw.ZDataHolder holder = zw.zway_find_controller_data(controller._zway, path)
+
+        if holder == NULL:
+            raise KeyError("NULL data for path")
 
         new_data = ZWayData(controller)
         new_data.set_holder(holder)
@@ -577,6 +600,9 @@ cdef class ZWayData:
 
         else:
             holder = zw.zway_find_device_instance_cc_data(controller._zway, device, instance, command_class, path)
+
+        if holder == NULL:
+            raise KeyError("NULL data for path")
 
         new_data = ZWayData(controller)
         new_data.set_holder(holder)
@@ -615,4 +641,35 @@ cdef class ZWayData:
         zw.zway_data_release_lock(self.controller._zway)
 
         return errno
+
+
+    # Dictionary data model
+
+    def __len__(self):
+       return len(self.children)
+
+
+    def __contains__(self, item):
+        try:
+            self.find_data(item)
+            return True
+
+        except KeyError:
+            return False
+
+
+    def __getitem__(self, item):
+        if type(item) is not str:
+            raise TypeError("Only string keys allowed")
+
+        return self.find_data(item)
+
+
+    def __setitem__(self, key, value):
+        if type(key) is not str:
+            raise TypeError("Only string keys allowed")
+
+        self.find_data(key).set(value)
+
+
 

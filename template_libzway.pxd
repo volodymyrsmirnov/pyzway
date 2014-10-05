@@ -68,6 +68,8 @@ cdef extern from "ZWayLib.h":
 
     # ZDataPublic.h
 
+    const char *zway_data_get_name(const ZWay zway, const ZDataHolder data)
+
 #GENPXD:ZDataPublic.h:zway_data_add_callback_ex,zway_data_remove_callback_ex
 
 # Internal definitions
