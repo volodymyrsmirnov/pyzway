@@ -288,7 +288,7 @@ cdef class ZWayData(object):
 
 
     def __repr__(self):
-        return """<ZWayData(path="{0}", type="{1}", value="{2}")>""".format(self.path, self.type, self.value)
+        return """<ZWayData(name="{3}", path="{0}", type="{1}", value="{2}")>""".format(self.path, self.type, self.value, self.name)
 
 
     @property
@@ -559,6 +559,7 @@ cdef class ZWayData(object):
         cdef zw.ZDataHolder holder = zw.zway_find_data(self.controller._zway, self.holder, path)
 
         if holder == NULL:
+            zw.zway_data_release_lock(controller._zway)
             raise KeyError("NULL data for path")
 
         new_data = ZWayData(self.controller)
@@ -576,6 +577,7 @@ cdef class ZWayData(object):
         cdef zw.ZDataHolder holder = zw.zway_find_controller_data(controller._zway, path)
 
         if holder == NULL:
+            zw.zway_data_release_lock(controller._zway)
             raise KeyError("NULL data for path")
 
         new_data = ZWayData(controller)
@@ -602,6 +604,7 @@ cdef class ZWayData(object):
             holder = zw.zway_find_device_instance_cc_data(controller._zway, device, instance, command_class, path)
 
         if holder == NULL:
+            zw.zway_data_release_lock(controller._zway)
             raise KeyError("NULL data for path")
 
         new_data = ZWayData(controller)
