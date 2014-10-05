@@ -559,7 +559,7 @@ cdef class ZWayData(object):
         cdef zw.ZDataHolder holder = zw.zway_find_data(self.controller._zway, self.holder, path)
 
         if holder == NULL:
-            zw.zway_data_release_lock(controller._zway)
+            zw.zway_data_release_lock(self.controller._zway)
             raise KeyError("NULL data for path")
 
         new_data = ZWayData(self.controller)
