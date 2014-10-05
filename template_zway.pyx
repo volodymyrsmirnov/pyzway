@@ -449,7 +449,7 @@ cdef class ZWayData(object):
             return result_list
 
 
-    def set(self, value, is_binary = False):
+    def set(self, value, is_binary=False):
         zw.zway_data_acquire_lock(self.controller._zway)
 
         cdef int* ints = []

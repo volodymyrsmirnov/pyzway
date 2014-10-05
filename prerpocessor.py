@@ -8,6 +8,10 @@
 
 import re
 
+def camel_case_to_underscore(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
 def parse_definition_file(file_name, ignore=list()):
     function_re = re.compile(r"^(?P<export>\w+)\s+(?P<return>[\w\*]+)\s+(?P<name>[\w\*]+)\((?P<arguments>.*)\);")
 
@@ -72,6 +76,7 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
         def_arguments = ["self"]
 
         for argument_type, argument_name in function["arguments"]:
+
             if argument_type == "ZJobCustomCallback":
                 has_job_callbacks = True
 
@@ -79,6 +84,7 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
                 continue
 
             argument_name = argument_name.replace("*", "")
+            argument_name = camel_case_to_underscore(argument_name)
 
             def_arguments.append(argument_name)
 
