@@ -11,7 +11,7 @@ import os
 from distutils.core import setup, Command
 from distutils.extension import Extension
 from distutils.command.clean import clean
-from Cython.Distutils import build_ext
+from Cython.Distutils import build_ext as cython_build_ext
 
 from prerpocessor import *
 
@@ -69,14 +69,14 @@ class PyzberryPreprocessor(Command):
 
 setup(
     name="PyZWay",
-    version="0.0.2",
-    description="Cython wrapper for PyZWay C API",
+    version="0.0.3",
+    description="Python wrapper for Z-Way C API",
     author="Vladimir Smirnov",
     author_email="vladimir@smirnov.im",
-    url="https://github.com/mindcollapse/razberry-python",
+    url="https://github.com/mindcollapse/pyzway",
     license="BSD",
     cmdclass={
-        "build_ext": build_ext,
+        "build_ext": cython_build_ext,
         "prepare": PyzberryPreprocessor,
         "clean": PyzberryCleaner
     },
