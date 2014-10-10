@@ -9,6 +9,7 @@ FOR A PARTICULAR PURPOSE.  See the license for more details.
 cimport cython
 from libc.stdio cimport fopen
 from libc.stdlib cimport free, malloc
+from cpython.ref cimport PyObject, Py_XINCREF, Py_XDECREF
 from cpython.pythread cimport PyThread_start_new_thread
 cimport libzway as zw
 import time
@@ -29,8 +30,9 @@ cdef void c_device_caller(void* info_p) with gil:
     if info.instance != NULL:
         (<ZWay> info.instance).on_device(info.type, info.node_id, info.instance_id, info.command_id)
 
-    free(info_p)
+    Py_XDECREF(<PyObject *> info.instance)
 
+    free(info_p)
 
 cdef void c_device_callback(const zw.ZWay zway, zw.ZWDeviceChangeType type, zw.ZWBYTE node_id, zw.ZWBYTE instance_id,
                             zw.ZWBYTE command_id, void *arg):
@@ -42,8 +44,9 @@ cdef void c_device_callback(const zw.ZWay zway, zw.ZWDeviceChangeType type, zw.Z
     info.command_id = command_id
     info.instance = arg
 
-    PyThread_start_new_thread(c_device_caller, <void *> info)
+    Py_XINCREF(<PyObject *> arg)
 
+    PyThread_start_new_thread(c_device_caller, <void *> info)
 
 cdef void c_job_caller(void* info_p) with gil:
     cdef zw.JobCallbackInfo info = <zw.JobCallbackInfo> info_p
@@ -51,8 +54,9 @@ cdef void c_job_caller(void* info_p) with gil:
     if info.instance != NULL:
         (<ZWay> info.instance).on_job(info.success, info.function_id)
 
-    free(info_p)
+    Py_XDECREF(<PyObject *> info.instance)
 
+    free(info_p)
 
 cdef void c_job_success_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void* arg):
     cdef zw.JobCallbackInfo info = <zw.JobCallbackInfo> malloc(cython.sizeof(zw.JobCallbackInfo))
@@ -60,8 +64,9 @@ cdef void c_job_success_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void
     info.function_id = function_id
     info.instance = arg
 
-    PyThread_start_new_thread(c_job_caller, <void *> info)
+    Py_XINCREF(<PyObject *> arg)
 
+    PyThread_start_new_thread(c_job_caller, <void *> info)
 
 cdef void c_job_failure_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void* arg):
     cdef zw.JobCallbackInfo info = <zw.JobCallbackInfo> malloc(cython.sizeof(zw.JobCallbackInfo))
@@ -69,8 +74,9 @@ cdef void c_job_failure_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void
     info.function_id = function_id
     info.instance = arg
 
-    PyThread_start_new_thread(c_job_caller, <void *> info)
+    Py_XINCREF(<PyObject *> arg)
 
+    PyThread_start_new_thread(c_job_caller, <void *> info)
 
 cdef void c_data_caller(void* info_p) with gil:
     cdef zw.DataChangeCallbackInfo info = <zw.DataChangeCallbackInfo> info_p
@@ -78,8 +84,9 @@ cdef void c_data_caller(void* info_p) with gil:
     if info.instance != NULL:
         (<ZWayData> info.instance).on_data_change(info.type)
 
-    free(info_p)
+    Py_XDECREF(<PyObject *> info.instance)
 
+    free(info_p)
 
 cdef void c_data_change_callback(const zw.ZWay wzay, zw.ZWDataChangeType type, zw.ZDataHolder data, void *arg):
     cdef zw.DataChangeCallbackInfo info = <zw.DataChangeCallbackInfo> malloc(cython.sizeof(zw.DataChangeCallbackInfo))
@@ -87,20 +94,19 @@ cdef void c_data_change_callback(const zw.ZWay wzay, zw.ZWDataChangeType type, z
     info.data = data
     info.instance = arg
 
+    Py_XINCREF(<PyObject *> arg)
+
     PyThread_start_new_thread(c_data_caller, <void *> info)
 
 
 cdef class ZWay(object):
     cdef zw.ZWay _zway
 
-
     def on_device(self, type, node_id, instance_id, command_id):
         pass
 
-
     def on_job(self, success, function_id):
         pass
-
 
     def __cinit__ (self, bytes port, bytes config_folder, bytes translations_folder, bytes zddx_folder, bytes log,
                    int level = 0):
@@ -114,26 +120,20 @@ cdef class ZWay(object):
         if errno != 0:
             raise EnvironmentError((errno, "zway library init error"))
 
-
     def terminate(self):
         zw.zway_terminate(&self._zway)
-
 
     def set_log(self, bytes log, int level):
         return zw.zway_set_log(self._zway, fopen(<char *> log, "wb") if log else NULL, level)
 
-
     def device_add_callback(self, mask):
         return zw.zway_device_add_callback(self._zway, mask, c_device_callback, <void *> self)
-
 
     def device_remove_callback(self):
         return zw.zway_device_remove_callback(self._zway, c_device_callback)
 
-
     def start(self):
         return zw.zway_start(self._zway, NULL)
-
 
     def device_guess(self, node_id):
         results = []
@@ -180,7 +180,6 @@ cdef class ZWay(object):
 
         return errno
 
-
     def config_restore(self, file_name, full):
         bytes_string = ""
 
@@ -189,11 +188,14 @@ cdef class ZWay(object):
 
         return zw.zway_controller_config_restore(self._zway, bytes_string, len(bytes_string), full)
 
-
     def devices_list(self):
         results = []
 
         cdef zw.ZWDevicesList devices = zw.zway_devices_list(self._zway)
+
+        if devices == NULL:
+            return results
+
         cdef zw.ZWBYTE node_id = 0
 
         i = 0
@@ -212,11 +214,14 @@ cdef class ZWay(object):
 
         return results
 
-
     def instances_list(self, device_id):
         results = []
 
         cdef zw.ZWInstancesList instances = zw.zway_instances_list(self._zway, device_id)
+
+        if instances == NULL:
+            return results
+
         cdef zw.ZWBYTE instance_id = 0
 
         i = 0
@@ -235,12 +240,14 @@ cdef class ZWay(object):
 
         return results
 
-
     def command_classes_list(self, device_id, instance_id):
         results = []
 
-        cdef zw.ZWCommandClassesList c_classes = zw.zway_command_classes_list(self._zway, device_id,
-                                                                                        instance_id)
+        cdef zw.ZWCommandClassesList c_classes = zw.zway_command_classes_list(self._zway, device_id, instance_id)
+
+        if c_classes == NULL:
+            return results
+
         cdef zw.ZWBYTE c_class = 0
 
         i = 0
@@ -259,7 +266,6 @@ cdef class ZWay(object):
 
         return results
 
-
     def cc_firmware_update_perform(self, node_id, instance_id, manufacturerId, firmwareId, firmwareTarget, bytes data):
         return zw.zway_cc_firmware_update_perform(self._zway, node_id, instance_id, manufacturerId, firmwareId, firmwareTarget, len(data), data, c_job_success_callback, c_job_failure_callback, <void *> self)
 
@@ -277,19 +283,15 @@ cdef class ZWayData(object):
     cdef zw.ZDataHolder holder
     cdef ZWay controller
 
-
     def on_data_change(self, change_type):
         pass
-
 
     def __cinit__(self, ZWay controller):
         self.controller = controller
         self.holder = NULL
 
-
     def __repr__(self):
         return """<ZWayData(name="{3}", path="{0}", type="{1}", value="{2}")>""".format(self.path, self.type, self.value, self.name)
-
 
     @property
     def is_empty(self):
@@ -300,7 +302,6 @@ cdef class ZWayData(object):
         zw.zway_data_release_lock(self.controller._zway)
 
         return empty
-
 
     @property
     def type(self):
@@ -315,7 +316,6 @@ cdef class ZWayData(object):
 
         return dtype
 
-
     @property
     def path(self):
         zw.zway_data_acquire_lock(self.controller._zway)
@@ -325,7 +325,6 @@ cdef class ZWayData(object):
         zw.zway_data_release_lock(self.controller._zway)
 
         return path
-
 
     @property
     def name(self):
@@ -337,7 +336,6 @@ cdef class ZWayData(object):
 
         return name
 
-
     @property
     def update_time(self):
         zw.zway_data_acquire_lock(self.controller._zway)
@@ -348,7 +346,6 @@ cdef class ZWayData(object):
 
         return time.gmtime(timestamp/1000)
 
-
     @property
     def invalidate_time(self):
         zw.zway_data_acquire_lock(self.controller._zway)
@@ -358,7 +355,6 @@ cdef class ZWayData(object):
         zw.zway_data_release_lock(self.controller._zway)
 
         return time.gmtime(timestamp/1000)
-
 
     @property
     def value(self):
@@ -448,7 +444,6 @@ cdef class ZWayData(object):
 
             return result_list
 
-
     def set(self, value, is_binary=False):
         zw.zway_data_acquire_lock(self.controller._zway)
 
@@ -518,7 +513,6 @@ cdef class ZWayData(object):
 
         return errno
 
-
     def invalidate(self, children=True):
         zw.zway_data_acquire_lock(self.controller._zway)
 
@@ -527,7 +521,6 @@ cdef class ZWayData(object):
         zw.zway_data_release_lock(self.controller._zway)
 
         return errno
-
 
     def add_callback(self, watch_children=True):
         zw.zway_data_acquire_lock(self.controller._zway)
@@ -538,7 +531,6 @@ cdef class ZWayData(object):
 
         return errno
 
-
     def remove_callback(self):
         zw.zway_data_acquire_lock(self.controller._zway)
 
@@ -548,10 +540,8 @@ cdef class ZWayData(object):
 
         return errno
 
-
     cdef void set_holder(self, zw.ZDataHolder holder):
         self.holder = holder
-
 
     def find_data(self, bytes path):
         zw.zway_data_acquire_lock(self.controller._zway)
@@ -569,7 +559,6 @@ cdef class ZWayData(object):
 
         return new_data
 
-
     @staticmethod
     def find_controller_data(ZWay controller, bytes path):
         zw.zway_data_acquire_lock(controller._zway)
@@ -586,7 +575,6 @@ cdef class ZWayData(object):
         zw.zway_data_release_lock(controller._zway)
 
         return new_data
-
 
     @staticmethod
     def find_device_data(ZWay controller, bytes path, device, instance=None, command_class=None):
@@ -614,7 +602,6 @@ cdef class ZWayData(object):
 
         return new_data
 
-
     @property
     def children(self):
         zw.zway_data_acquire_lock(self.controller._zway)
@@ -635,7 +622,6 @@ cdef class ZWayData(object):
 
         return result
 
-
     def remove_child(self, ZWayData child):
         zw.zway_data_acquire_lock(self.controller._zway)
 
@@ -645,12 +631,10 @@ cdef class ZWayData(object):
 
         return errno
 
-
     # Dictionary data model
 
     def __len__(self):
        return len(self.children)
-
 
     def __contains__(self, item):
         try:
@@ -660,13 +644,11 @@ cdef class ZWayData(object):
         except KeyError:
             return False
 
-
     def __getitem__(self, item):
         if type(item) is not str:
             raise TypeError("Only string keys allowed")
 
         return self.find_data(item)
-
 
     def __setitem__(self, key, value):
         if type(key) is not str:
