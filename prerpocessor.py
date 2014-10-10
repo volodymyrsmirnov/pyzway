@@ -94,7 +94,7 @@ def generate_pyx(parsing_result, prepend="    ", append="\n\n"):
         if function["return"] != "void":
             result += "return "
 
-        result += "zw.{0}(self._zway".format(function["name"].replace("*", ""))
+        result += "zw.{0}(self.__zway".format(function["name"].replace("*", ""))
 
         if len(def_arguments[1:]):
             result += ", " + ", ".join(def_arguments[1:])
