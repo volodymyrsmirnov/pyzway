@@ -69,7 +69,7 @@ class PyzberryPreprocessor(Command):
 
 setup(
     name="PyZWay",
-    version="0.0.3",
+    version="0.0.4",
     description="Python wrapper for Z-Way C API",
     author="Vladimir Smirnov",
     author_email="vladimir@smirnov.im",
