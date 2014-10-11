@@ -215,7 +215,7 @@ cdef class ZWay(object):
         return results
 
     def instances_list(self, device_id):
-        results = []
+        results = [0]
 
         cdef zw.ZWInstancesList instances = zw.zway_instances_list(self.__zway, device_id)
 
