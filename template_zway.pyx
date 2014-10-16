@@ -254,7 +254,7 @@ cdef class ZWay(object):
 
         return results
 
-    def command_classes_list(self, device_id, instance_id):
+    def command_classes_list(self, device_id, instance_id, as_hex=False):
         results = []
 
         cdef zw.ZWCommandClassesList c_classes = zw.zway_command_classes_list(self.__zway, device_id, instance_id)
@@ -272,7 +272,7 @@ cdef class ZWay(object):
             if c_class == 0:
                 break
 
-            results.append(c_class)
+            results.append(c_class if not as_hex else hex(c_class))
 
             i += 1
 
