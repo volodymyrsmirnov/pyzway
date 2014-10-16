@@ -102,6 +102,12 @@ cdef void c_data_change_callback(const zw.ZWay wzay, zw.ZWDataChangeType type, z
 cdef class ZWay(object):
     cdef zw.ZWay __zway
 
+    port = None
+    config_folder = None
+    translations_folder = None
+    zddx_folder = None
+    log = None
+
     def on_device(self, event_type, node_id, instance_id, command_id):
         pass
 
@@ -111,6 +117,12 @@ cdef class ZWay(object):
     def __cinit__ (self, bytes port, bytes config_folder, bytes translations_folder, bytes zddx_folder, bytes log,
                    int level = 0):
         zw.PyEval_InitThreads()
+
+        self.port = port
+        self.config_folder = config_folder
+        self.translations_folder = translations_folder
+        self.zddx_folder = zddx_folder
+        self.log = log
 
         errno =  zw.zway_init(
             &self.__zway, port, config_folder, translations_folder, zddx_folder,
@@ -124,6 +136,8 @@ cdef class ZWay(object):
         zw.zway_terminate(&self.__zway)
 
     def set_log(self, bytes log, int level):
+        self.log = log
+
         return zw.zway_set_log(self.__zway, fopen(<char *> log, "wb") if log else NULL, level)
 
     def device_add_callback(self, mask):
@@ -284,12 +298,15 @@ cdef class ZWayData(object):
 
     cdef ZWay __controller
 
+    callback = None
+
     @property
     def controller(self):
         return self.__controller
 
     def on_data_change(self, change_type):
-        pass
+        if callable(self.callback):
+            self.callback(change_type)
 
     def __cinit__(self, ZWay controller):
         self.__controller = controller
@@ -549,7 +566,9 @@ cdef class ZWayData(object):
 
         return errno
 
-    def add_callback(self, watch_children=True):
+    def add_callback(self, callback, watch_children=True):
+        self.callback = callback
+
         zw.zway_data_acquire_lock(self.__controller.__zway)
 
         errno = zw.zway_data_add_callback(self.__controller.__zway, self.__holder, c_data_change_callback, 1 if watch_children else 0, <void *> self)
@@ -559,6 +578,8 @@ cdef class ZWayData(object):
         return errno
 
     def remove_callback(self):
+        self.callback = None
+
         zw.zway_data_acquire_lock(self.__controller.__zway)
 
         errno = zw.zway_data_remove_callback(self.__controller.__zway, self.__holder, c_data_change_callback)

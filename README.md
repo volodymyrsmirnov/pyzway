@@ -94,13 +94,6 @@ Use empty string in path to get the root object.
 
 For wrong queries (the ones that return NULL in zway_find_* calls) the KeyError exception will be thrown.
 
-ZWayData executes the following callback (override in inherited ancestors) when data in holder been changed and the callback been enabled with appropriate instance method:
-
-```
-def on_data_change(self, change_type):
-    # change_type - int
-```
-
 ZWayData instance has the following properties and methods:
 
 * is_empty - bool, returns True if ZWayData holds an empty data.
@@ -113,7 +106,7 @@ ZWayData instance has the following properties and methods:
 * children - the list of children ZWayData instances. 
 * set(value, is_binary=False) - set the value of data, is you pass bytes in value and is_binary is false - we set the string data, if is_binary is true - we set the binary data in holder.
 * invalidate(children=True) - invalidate instance and its children if children set to True.
-* add_callback(watch_children=True) - enable on_data_change callback for data change.
+* add_callback(callback, watch_children=True) - enable on_data_change callback for data change, launch passed callback() function.
 * remove_callback() - disable on_data_change callback for data change.
 * find_data(path) - find a child data in current ZWayData, returns new ZWayData instance.
 * remove_child(self, ZWayData child) - remove a child data from current (parent) instance.
