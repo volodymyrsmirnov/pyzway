@@ -8,8 +8,11 @@
 
 from libc.stdio cimport FILE
 
+ctypedef int PyGILState_STATE
+
 cdef extern from "Python.h":
     void PyEval_InitThreads()
+    int Py_AddPendingCall(int (*func)(void *), void *arg)
 
 cdef extern from "ZWayLib.h":
     ctypedef long time_t

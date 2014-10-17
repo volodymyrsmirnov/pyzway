@@ -9,30 +9,18 @@ FOR A PARTICULAR PURPOSE.  See the license for more details.
 cimport cython
 from libc.stdio cimport fopen
 from libc.stdlib cimport free, malloc
-from cpython.ref cimport PyObject, Py_XINCREF, Py_XDECREF
-from cpython.pythread cimport PyThread_start_new_thread
 cimport libzway as zw
 import time
 
-"""
-Why do we need callback and caller functions per each callback?
-
-Because the bare C callback behaves pretty much strange. When I enable GIL bypassing "with gil" in function definition -
-execution enters the deadlock in caller thread with pthread sem_wait. Without GIL it causes the SEGFAULT, so the only
-working solution I was able to find is to pass pointer with data into the new PyThread where we execute python callback.
-
-Know the better way? Drop me a line at vladimir@smirnov.im or send a pull request on github.
-"""
-
-cdef void c_device_caller(void* info_p) with gil:
+cdef int c_device_caller(void* info_p) with gil:
     cdef zw.DeviceCallbackInfo info = <zw.DeviceCallbackInfo> info_p
 
     if info.instance != NULL:
-        (<ZWay> info.instance).on_device(info.type, info.node_id, info.instance_id, info.command_id)
-
-    Py_XDECREF(<PyObject *> info.instance)
+        (<object> info.instance).on_device(info.type, info.node_id, info.instance_id, info.command_id)
 
     free(info_p)
+
+    return 0
 
 cdef void c_device_callback(const zw.ZWay zway, zw.ZWDeviceChangeType type, zw.ZWBYTE node_id, zw.ZWBYTE instance_id,
                             zw.ZWBYTE command_id, void *arg):
@@ -44,19 +32,17 @@ cdef void c_device_callback(const zw.ZWay zway, zw.ZWDeviceChangeType type, zw.Z
     info.command_id = command_id
     info.instance = arg
 
-    Py_XINCREF(<PyObject *> arg)
+    zw.Py_AddPendingCall(c_device_caller, <void *> info)
 
-    PyThread_start_new_thread(c_device_caller, <void *> info)
-
-cdef void c_job_caller(void* info_p) with gil:
+cdef int c_job_caller(void* info_p) with gil:
     cdef zw.JobCallbackInfo info = <zw.JobCallbackInfo> info_p
 
     if info.instance != NULL:
-        (<ZWay> info.instance).on_job(info.success, info.function_id)
-
-    Py_XDECREF(<PyObject *> info.instance)
+        (<object> info.instance).on_job(info.success, info.function_id)
 
     free(info_p)
+
+    return 0
 
 cdef void c_job_success_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void* arg):
     cdef zw.JobCallbackInfo info = <zw.JobCallbackInfo> malloc(cython.sizeof(zw.JobCallbackInfo))
@@ -64,9 +50,7 @@ cdef void c_job_success_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void
     info.function_id = function_id
     info.instance = arg
 
-    Py_XINCREF(<PyObject *> arg)
-
-    PyThread_start_new_thread(c_job_caller, <void *> info)
+    zw.Py_AddPendingCall(c_job_caller, <void *> info)
 
 cdef void c_job_failure_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void* arg):
     cdef zw.JobCallbackInfo info = <zw.JobCallbackInfo> malloc(cython.sizeof(zw.JobCallbackInfo))
@@ -74,19 +58,17 @@ cdef void c_job_failure_callback(const zw.ZWay zway, zw.ZWBYTE function_id, void
     info.function_id = function_id
     info.instance = arg
 
-    Py_XINCREF(<PyObject *> arg)
+    zw.Py_AddPendingCall(c_job_caller, <void *> info)
 
-    PyThread_start_new_thread(c_job_caller, <void *> info)
-
-cdef void c_data_caller(void* info_p) with gil:
+cdef int c_data_caller(void* info_p) with gil:
     cdef zw.DataChangeCallbackInfo info = <zw.DataChangeCallbackInfo> info_p
 
     if info.instance != NULL:
-        (<ZWayData> info.instance).on_data_change(info.type)
-
-    Py_XDECREF(<PyObject *> info.instance)
+        (<object> info.instance).on_data_change(info.type)
 
     free(info_p)
+
+    return 0
 
 cdef void c_data_change_callback(const zw.ZWay wzay, zw.ZWDataChangeType type, zw.ZDataHolder data, void *arg):
     cdef zw.DataChangeCallbackInfo info = <zw.DataChangeCallbackInfo> malloc(cython.sizeof(zw.DataChangeCallbackInfo))
@@ -94,9 +76,7 @@ cdef void c_data_change_callback(const zw.ZWay wzay, zw.ZWDataChangeType type, z
     info.data = data
     info.instance = arg
 
-    Py_XINCREF(<PyObject *> arg)
-
-    PyThread_start_new_thread(c_data_caller, <void *> info)
+    zw.Py_AddPendingCall(c_data_caller, <void *> info)
 
 
 cdef class ZWay(object):
@@ -114,23 +94,24 @@ cdef class ZWay(object):
     def on_job(self, success, function_id):
         pass
 
-    def __cinit__ (self, bytes port, bytes config_folder, bytes translations_folder, bytes zddx_folder, bytes log,
-                   int level = 0):
+    def __cinit__(self, *args, **kwargs):
         zw.PyEval_InitThreads()
 
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def initialize (self, bytes port, bytes config_folder, bytes translations_folder, bytes zddx_folder, bytes log,
+                   int level = 0):
         self.port = port
         self.config_folder = config_folder
         self.translations_folder = translations_folder
         self.zddx_folder = zddx_folder
         self.log = log
 
-        errno =  zw.zway_init(
+        return zw.zway_init(
             &self.__zway, port, config_folder, translations_folder, zddx_folder,
             fopen(<char *> log, "wb") if log else NULL, level
         )
-
-        if errno != 0:
-            raise EnvironmentError((errno, "zway library init error"))
 
     def terminate(self):
         zw.zway_terminate(&self.__zway)
